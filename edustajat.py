@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3.7
 
 import sys
 import requests
@@ -12,10 +12,10 @@ def main():
         r = requests.get(LIST_URL)
         r.raise_for_status()
     except requests.HTTPError:
-        print 'Could not GET listing page'
+        sys.stderr.write('Could not GET listing page\n')
         return 1
 
-    s = BeautifulSoup(r.content, 'lxml')
+    s = BeautifulSoup(r.content, 'html.parser')
     page_urls = s.find_all('div', 'link-item')
     for page in page_urls:
         path = page.find('a').get('href')
@@ -23,15 +23,16 @@ def main():
             r = requests.get(path)
             r.raise_for_status()
         except requests.HTTPError:
-            print 'Could not GET page', path
+            sys.stderr.write(f'Could not GET page {path}\n')
             continue
-        s = BeautifulSoup(r.content, 'lxml')
+        s = BeautifulSoup(r.content, 'html.parser')
         try:
-            email = s.find(lambda tag: tag.get('href', '').startswith('mailto')).text
+            email = s.find('div', id='ctl00_PlaceHolderMain_MOPInformation_EmailPanel').find('div', class_='mop-info-value').text.strip().replace('(at)', '@')
         except AttributeError:
-            sys.stderr.write('No email found in %s\n' % path)
+            sys.stderr.write(f'No email found in {path}\n')
         else:
-            print email
+            print(email)
+            sys.stdout.flush()
 
     return 0
 
